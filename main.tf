@@ -34,7 +34,7 @@ resource "azurerm_subnet" "kubesubnet" {
   address_prefixes     = ["10.240.0.0/24"]
 }
 
-resource "azurerm_network_security_group" "allow_internal" {
+resource "azurerm_network_security_group" "kubernetes_subnet_security" {
   name                = "kubernetes-the-hard-way-allow-internal"
   location            = local.location
   resource_group_name = azurerm_resource_group.kubectlrg.name
@@ -49,7 +49,7 @@ resource "azurerm_network_security_rule" "inbound_internal_rule" {
   }
   name                         = join("", [each.key, "_rule"])
   resource_group_name          = azurerm_resource_group.kubectlrg.name
-  network_security_group_name  = azurerm_network_security_group.allow_internal.name
+  network_security_group_name  = azurerm_network_security_group.kubernetes_subnet_security.name
   direction                    = "Inbound"
   protocol                     = each.key
   source_port_range            = "*"
@@ -60,16 +60,10 @@ resource "azurerm_network_security_rule" "inbound_internal_rule" {
   priority                     = each.value
 }
 
-resource "azurerm_network_security_group" "allow_external" {
-  name                = "kubernetes-the-hard-way-allow-internal"
-  location            = local.location
-  resource_group_name = azurerm_resource_group.kubectlrg.name
-  security_rule       = []
-}
 resource "azurerm_network_security_rule" "inbound_external_rule_tcp" {
   name                         = "external_tcp"
   resource_group_name          = azurerm_resource_group.kubectlrg.name
-  network_security_group_name  = azurerm_network_security_group.allow_external.name
+  network_security_group_name  = azurerm_network_security_group.kubernetes_subnet_security.name
   direction                    = "Inbound"
   protocol                     = "Tcp"
   source_port_range            = "*"
@@ -83,23 +77,29 @@ resource "azurerm_network_security_rule" "inbound_external_rule_tcp" {
 resource "azurerm_network_security_rule" "inbound_external_rule_icmp" {
   name                         = "external_icmp"
   resource_group_name          = azurerm_resource_group.kubectlrg.name
-  network_security_group_name  = azurerm_network_security_group.allow_external.name
+  network_security_group_name  = azurerm_network_security_group.kubernetes_subnet_security.name
   direction                    = "Inbound"
-  protocol                     = "Tcp"
+  protocol                     = "Icmp"
   source_port_range            = "*"
-  destination_port_ranges      = [22, 6443]
+  destination_port_range       = "*"
   source_address_prefix        = "122.60.7.3/32"
   destination_address_prefixes = ["10.240.0.0/24", "10.200.0.0/16"]
   access                       = "Allow"
   priority                     = 301
 }
 
-resource "azurerm_subnet_network_security_group_association" "kubesubnet_internal_security_rules" {
+resource "azurerm_subnet_network_security_group_association" "kubesubnet_security_rules" {
   subnet_id                 = azurerm_subnet.kubesubnet.id
-  network_security_group_id = azurerm_network_security_group.allow_internal.id
+  network_security_group_id = azurerm_network_security_group.kubernetes_subnet_security.id
 }
 
-resource "azurerm_subnet_network_security_group_association" "kubesubnet_external_security_rules" {
-  subnet_id                 = azurerm_subnet.kubesubnet.id
-  network_security_group_id = azurerm_network_security_group.allow_external.id
+resource "azurerm_public_ip" "kubepublicip" {
+  name = "kubernetes-the-hard-way"
+  resource_group_name = azurerm_resource_group.kubectlrg.name
+  location = azurerm_resource_group.kubectlrg.location
+  allocation_method = "Dynamic"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
 }
