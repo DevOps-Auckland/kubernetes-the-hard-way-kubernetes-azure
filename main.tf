@@ -57,8 +57,8 @@ resource "azurerm_network_security_group" "kubernetes_subnet_security" {
       name                                  = "external_tcp"
       priority                              = 300
       protocol                              = "Tcp"
-      source_address_prefix                 = "122.60.7.3/32"
-      source_address_prefixes               = []
+      source_address_prefix                 = ""
+      source_address_prefixes               = ["10.240.1.0/28", "122.60.7.3/32"]
       source_application_security_group_ids = []
       source_port_range                     = "*"
       source_port_ranges                    = []
@@ -158,6 +158,11 @@ resource "azurerm_network_security_group" "kubernetes_subnet_security" {
   }, ]
 }
 
+resource "azurerm_subnet_network_security_group_association" "sg_association" {
+  subnet_id                 = azurerm_subnet.kubesubnet.id
+  network_security_group_id = azurerm_network_security_group.kubernetes_subnet_security.id
+}
+
 resource "azurerm_public_ip" "kubepublicip" {
   name                = "kubernetes-the-hard-way"
   resource_group_name = azurerm_resource_group.kubectlrg.name
@@ -177,4 +182,15 @@ module "kubecluster" {
   resource_group_name    = azurerm_resource_group.kubectlrg.name
   subnet_id              = azurerm_subnet.kubesubnet.id
   private_ip             = format("10.240.0.1%s", each.key)
+}
+
+module "kubeworkers" {
+  for_each               = toset(["1", "2", "3"])
+  source                 = "./modules/virtual_machines"
+  vm_name                = join("", ["worker-", each.key])
+  network_interface_name = join("", ["worker-nic-", each.key])
+  location               = azurerm_resource_group.kubectlrg.location
+  resource_group_name    = azurerm_resource_group.kubectlrg.name
+  subnet_id              = azurerm_subnet.kubesubnet.id
+  private_ip             = format("10.240.0.2%s", each.key)
 }
