@@ -1,0 +1,16 @@
+{
+  "CN": "Kubernetes",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "NZ",
+      "L": "Auckland",
+      "O": "Kubernetes",
+      "OU": "Cloud Enablement",
+      "ST": "Auckland"
+    }
+  ]
+}
