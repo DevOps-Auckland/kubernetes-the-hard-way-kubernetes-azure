@@ -163,16 +163,6 @@ resource "azurerm_subnet_network_security_group_association" "sg_association" {
   network_security_group_id = azurerm_network_security_group.kubernetes_subnet_security.id
 }
 
-resource "azurerm_public_ip" "kubepublicip" {
-  name                = "kubernetes-the-hard-way"
-  resource_group_name = azurerm_resource_group.kubectlrg.name
-  location            = azurerm_resource_group.kubectlrg.location
-  allocation_method   = "Dynamic"
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
 module "kubecluster" {
   for_each               = toset(["1", "2", "3"])
   source                 = "./modules/virtual_machines"
