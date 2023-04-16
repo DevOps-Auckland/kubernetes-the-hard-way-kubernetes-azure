@@ -4,6 +4,9 @@ resource "azurerm_public_ip" "bastionpublicip" {
   resource_group_name = azurerm_resource_group.kubectlrg.name
   allocation_method   = "Static"
   sku                 = "Standard"
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "azurerm_subnet" "bastionsubnet" {
@@ -23,4 +26,7 @@ resource "azurerm_bastion_host" "bastion" {
     subnet_id            = azurerm_subnet.bastionsubnet.id
     public_ip_address_id = azurerm_public_ip.bastionpublicip.id
   }
+  depends_on = [
+    azurerm_public_ip.bastionpublicip
+  ]
 }
